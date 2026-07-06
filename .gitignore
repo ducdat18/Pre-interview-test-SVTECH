@@ -1,0 +1,17 @@
+# Local editor / tooling state — never commit
+.omc/
+.claude/
+.idea/
+.vscode/
+
+# Office temp/lock files
+~$*
+*.tmp
+
+# Generated sysadmin credentials — never commit
+task01/secrets/
+
+# Local Ansible inventory / vault
+task01/inventory/hosts.ini
+.vault_pass
+*.retry

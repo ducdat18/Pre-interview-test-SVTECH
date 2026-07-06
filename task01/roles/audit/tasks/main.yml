@@ -1,0 +1,105 @@
+---
+# Command audit logging: Snoopy logs every execve() (user, uid, tty, cwd, full
+# command line) to syslog; rsyslog routes it to a dedicated file. auditd adds
+# kernel-level auditing for privilege/identity events where supported.
+
+# --- Snoopy: log every command ---------------------------------------------
+- name: Ensure universe repository is available (snoopy lives there)
+  ansible.builtin.apt_repository:
+    repo: "deb http://archive.ubuntu.com/ubuntu {{ ansible_distribution_release }} universe"
+    state: present
+    update_cache: true
+
+- name: Install snoopy
+  ansible.builtin.apt:
+    name: snoopy
+    state: present
+
+- name: Ensure snoopy is enabled in ld.so.preload
+  ansible.builtin.lineinfile:
+    path: /etc/ld.so.preload
+    line: "/lib/x86_64-linux-gnu/libsnoopy.so"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+    state: present
+
+- name: Configure snoopy message format and output
+  ansible.builtin.template:
+    src: snoopy.ini.j2
+    dest: /etc/snoopy.ini
+    owner: root
+    group: root
+    mode: "0644"
+
+# --- rsyslog: route snoopy records to a dedicated file ---------------------
+- name: Install rsyslog
+  ansible.builtin.apt:
+    name: rsyslog
+    state: present
+
+- name: Route snoopy output to the dedicated command log
+  ansible.builtin.template:
+    src: rsyslog-commands.conf.j2
+    dest: /etc/rsyslog.d/49-commands.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart rsyslog
+
+- name: Pre-create the command audit log with restrictive perms
+  ansible.builtin.file:
+    path: "{{ command_audit_log }}"
+    state: touch
+    owner: syslog
+    group: adm
+    mode: "0640"
+
+- name: Rotate the command audit log
+  ansible.builtin.template:
+    src: logrotate-commands.j2
+    dest: /etc/logrotate.d/commands
+    owner: root
+    group: root
+    mode: "0644"
+
+# --- auditd: kernel-level execve + identity auditing -----------------------
+- name: Install auditd
+  ansible.builtin.apt:
+    name:
+      - auditd
+      - audispd-plugins
+    state: present
+
+- name: Deploy audit rules
+  ansible.builtin.copy:
+    src: audit.rules
+    dest: /etc/audit/rules.d/99-k8s-node.rules
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Restart auditd
+
+# auditd needs kernel audit support; some minimal cloud/container kernels lack
+# it. Snoopy is the primary logger, so we only start auditd where supported.
+- name: Detect kernel audit support
+  ansible.builtin.command: auditctl -s
+  register: audit_support
+  changed_when: false
+  failed_when: false
+
+- name: Enable and start auditd (only where the kernel supports audit)
+  ansible.builtin.systemd:
+    name: auditd
+    enabled: true
+    state: started
+  when: "'enabled' in (audit_support.stdout | default(''))"
+
+- name: Warn when kernel lacks audit support
+  ansible.builtin.debug:
+    msg: >-
+      Kernel has no usable audit subsystem — skipping auditd. Snoopy command
+      logging to {{ command_audit_log }} remains active and satisfies the
+      per-command audit requirement.
+  when: "'enabled' not in (audit_support.stdout | default(''))"

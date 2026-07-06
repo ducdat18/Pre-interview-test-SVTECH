@@ -1,0 +1,8 @@
+# Generated sysadmin credentials — never commit
+secrets/
+
+# Ansible / editor cruft
+*.retry
+*.log
+.vault_pass
+inventory/hosts.ini

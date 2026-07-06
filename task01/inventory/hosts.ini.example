@@ -1,0 +1,12 @@
+# Copy to inventory/hosts.ini and edit for your environment.
+#
+# Each host under [k8s_nodes] will be provisioned as a Kubernetes worker node.
+# Set ansible_user to an account with passwordless (or --ask-become-pass) sudo.
+
+[k8s_nodes]
+worker-01 ansible_host=10.0.0.11 ansible_user=ubuntu
+# worker-02 ansible_host=10.0.0.12 ansible_user=ubuntu
+
+[k8s_nodes:vars]
+# Override group_vars/all.yml per-inventory if desired, e.g.:
+# kubernetes_version=1.31

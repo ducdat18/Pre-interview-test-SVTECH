@@ -1,0 +1,16 @@
+# Managed by Ansible — Snoopy command logging configuration
+[snoopy]
+
+# Route through syslog so rsyslog can file it into a dedicated log.
+output = syslog
+
+# authpriv keeps command data out of the general syslog stream.
+syslog_facility = LOG_AUTHPRIV
+syslog_level    = LOG_INFO
+syslog_ident    = snoopy
+
+# Rich, greppable record: who / from where / as whom / where / what.
+message = "user=%{username} uid=%{uid} login=%{loginname} euid=%{euid} tty=%{tty} cwd=%{cwd} sid=%{sid} filename=%{filename} cmd=%{cmdline}"
+
+# Log even commands run by root and system daemons.
+filter_chain = ""

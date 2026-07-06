@@ -1,0 +1,25 @@
+## Managed by Ansible — auditd rules for a Kubernetes node
+## Complements the Snoopy command log with tamper-evident kernel auditing.
+
+# Log every command execution (execve) for all users, 64- and 32-bit.
+-a always,exit -F arch=b64 -S execve -k exec
+-a always,exit -F arch=b32 -S execve -k exec
+
+# Track identity / credential changes.
+-w /etc/passwd    -p wa -k identity
+-w /etc/group     -p wa -k identity
+-w /etc/shadow    -p wa -k identity
+-w /etc/sudoers   -p wa -k scope
+-w /etc/sudoers.d -p wa -k scope
+
+# Track privilege escalation and session activity.
+-w /var/log/commands.log -p wa -k audit_log_tamper
+-w /usr/bin/sudo         -p x  -k priv_esc
+
+# Kubernetes / container runtime surface.
+-w /etc/kubernetes/ -p wa -k kubernetes
+-w /etc/containerd/ -p wa -k containerd
+-w /var/lib/kubelet/ -p wa -k kubelet
+
+# Make the config immutable until next reboot (enable in hardened envs).
+# -e 2

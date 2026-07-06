@@ -1,0 +1,68 @@
+---
+# =============================================================================
+# Global configuration for Kubernetes node provisioning
+# =============================================================================
+
+# --- Kubernetes -------------------------------------------------------------
+# Minor version stream from pkgs.k8s.io. pause_image MUST match what this
+# kubeadm/kubelet expects for the runtime to start pods correctly.
+kubernetes_version: "1.31"
+pause_image: "registry.k8s.io/pause:3.10"
+kubernetes_apt_key_url: "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/Release.key"
+kubernetes_apt_repo: "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_version }}/deb/"
+
+# --- containerd (from official Docker apt repo) -----------------------------
+containerd_cgroup_systemd: true
+docker_apt_key_url: "https://download.docker.com/linux/ubuntu/gpg"
+docker_apt_repo: "https://download.docker.com/linux/ubuntu"
+
+# --- Host / DNS -------------------------------------------------------------
+# Leave node_hostname empty to keep the existing hostname.
+node_hostname: ""                 # e.g. "worker-01"
+node_search_domains: []           # e.g. ["cluster.local", "example.internal"]
+node_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+node_timezone: "UTC"
+
+# --- Sysadmin accounts ------------------------------------------------------
+# Passwords are auto-generated on the control node and stored under secrets/.
+# Set password_login: false for key-only accounts (password is still generated
+# for break-glass console access but SSH password auth stays disabled).
+sysadmin_password_length: 24
+sysadmins:
+  - name: sysops
+    comment: "Platform SRE"
+    groups: ["sudo"]
+    password_login: true
+    force_password_change: true
+    ssh_authorized_keys: []
+    # - "ssh-ed25519 AAAA... admin@laptop"
+
+# --- CLI tooling commonly used in production --------------------------------
+cli_tools:
+  - vim
+  - tmux
+  - git
+  - curl
+  - wget
+  - jq
+  - htop
+  - tree
+  - net-tools
+  - dnsutils
+  - iproute2
+  - iputils-ping
+  - tcpdump
+  - lsof
+  - rsync
+  - unzip
+  - ca-certificates
+  - gnupg
+  - apt-transport-https
+  - software-properties-common
+  - bash-completion
+  - chrony
+
+# --- Command audit logging --------------------------------------------------
+command_audit_log: "/var/log/commands.log"

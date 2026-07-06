@@ -1,0 +1,48 @@
+---
+- name: Provision production-ready Kubernetes worker node
+  hosts: "{{ target | default('k8s_nodes') }}"
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Assert Ubuntu 24.04 LTS
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_version is version("24.04", ">=")
+        fail_msg: >-
+          This playbook targets Ubuntu 24.04 LTS
+          (found {{ ansible_distribution }} {{ ansible_distribution_version }}).
+        success_msg: "Ubuntu {{ ansible_distribution_version }} detected."
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+  roles:
+    - base
+    - sysadmins
+    - audit
+    - kernel
+    - containerd
+    - kubernetes
+
+  post_tasks:
+    - name: Install validation script to /usr/local/sbin
+      ansible.builtin.copy:
+        src: scripts/validate.sh
+        dest: /usr/local/sbin/k8s-node-validate
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Run node validation
+      ansible.builtin.command: /usr/local/sbin/k8s-node-validate
+      changed_when: false
+      register: validation
+      failed_when: validation.rc != 0
+
+    - name: Show validation output
+      ansible.builtin.debug:
+        var: validation.stdout_lines

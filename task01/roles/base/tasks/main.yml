@@ -1,0 +1,65 @@
+---
+# Base system configuration: packages, hostname, DNS, time.
+
+- name: Install common CLI tooling
+  ansible.builtin.apt:
+    name: "{{ cli_tools }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Get current timezone
+  ansible.builtin.command: timedatectl show -p Timezone --value
+  register: current_tz
+  changed_when: false
+
+- name: Set timezone
+  ansible.builtin.command: "timedatectl set-timezone {{ node_timezone }}"
+  when:
+    - node_timezone | length > 0
+    - current_tz.stdout | trim != node_timezone
+  changed_when: true
+
+- name: Enable and start chrony (time sync)
+  ansible.builtin.systemd:
+    name: chrony
+    enabled: true
+    state: started
+
+# --- Hostname --------------------------------------------------------------
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: "{{ node_hostname }}"
+  when: node_hostname | length > 0
+
+- name: Ensure hostname resolves in /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.1\.1\s'
+    line: "127.0.1.1 {{ node_hostname }}"
+    state: present
+  when: node_hostname | length > 0
+
+# --- DNS via systemd-resolved ----------------------------------------------
+- name: Ensure resolved drop-in directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/resolved.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure systemd-resolved
+  ansible.builtin.template:
+    src: resolved.conf.j2
+    dest: /etc/systemd/resolved.conf.d/10-k8s-node.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart systemd-resolved
+
+- name: Enable systemd-resolved
+  ansible.builtin.systemd:
+    name: systemd-resolved
+    enabled: true
+    state: started

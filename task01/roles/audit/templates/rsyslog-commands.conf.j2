@@ -1,0 +1,4 @@
+# Managed by Ansible — route Snoopy command records to a dedicated file.
+# Everything tagged "snoopy" goes to {{ command_audit_log }} and nowhere else.
+:programname, isequal, "snoopy"   {{ command_audit_log }}
+& stop

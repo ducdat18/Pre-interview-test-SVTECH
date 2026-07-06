@@ -1,0 +1,67 @@
+---
+# Install kubelet, kubeadm, kubectl from pkgs.k8s.io and prepare to join.
+
+- name: Ensure keyrings directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Add Kubernetes apt GPG key
+  ansible.builtin.get_url:
+    url: "{{ kubernetes_apt_key_url }}"
+    dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Add Kubernetes apt repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc]
+      {{ kubernetes_apt_repo }} /
+    filename: kubernetes
+    state: present
+    update_cache: true
+
+- name: Install kubelet, kubeadm, kubectl
+  ansible.builtin.apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+
+- name: Hold kubelet, kubeadm, kubectl at installed versions
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+
+- name: Configure kubelet node-ip / extra args (optional drop-in)
+  ansible.builtin.copy:
+    dest: /etc/default/kubelet
+    content: "KUBELET_EXTRA_ARGS=\n"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable kubelet (it will crash-loop until 'kubeadm join' runs — expected)
+  ansible.builtin.systemd:
+    name: kubelet
+    enabled: true
+    state: started
+  # kubelet has no config until the node joins; enabling ensures it starts on join.
+  failed_when: false
+
+- name: Emit join instructions
+  ansible.builtin.debug:
+    msg: >-
+      Node is prepared. To join the cluster, run the output of
+      `kubeadm token create --print-join-command` from a control-plane node
+      on this host (as root).

@@ -1,0 +1,9 @@
+# Managed by Ansible — Kubernetes node DNS configuration
+[Resolve]
+DNS={{ node_dns_servers | join(' ') }}
+{% if node_search_domains | length > 0 %}
+Domains={{ node_search_domains | join(' ') }}
+{% endif %}
+FallbackDNS=9.9.9.9
+Cache=yes
+DNSStubListener=yes
