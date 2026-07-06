@@ -47,11 +47,3 @@ synthetic monitoring for low-traffic periods), so gradual, user-visible
 degradations slip through until someone notices manually.
 
 ---
-
-### Cross-cutting philosophy
-
-Across all three: **verify before acting** (don't roll back or chase alerts
-blindly) and **measure what the user experiences**, not only what the system
-reports. Restoring service (MTTR) stays the priority; the quick verification
-steps above are seconds-long gates, not long investigations, and full root-cause
-analysis belongs in the postmortem.
