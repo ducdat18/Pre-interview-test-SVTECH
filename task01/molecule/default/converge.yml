@@ -1,0 +1,5 @@
+---
+# Reuse the real playbook so the test exercises exactly what production runs.
+# `target=all` (set in molecule.yml) makes site.yml target the molecule VM.
+- name: Converge
+  ansible.builtin.import_playbook: ../../site.yml

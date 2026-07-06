@@ -1,0 +1,17 @@
+---
+# Independent verification: run the validation script on the node.
+# site.yml already installs it to /usr/local/sbin/k8s-node-validate; a non-zero
+# exit here fails the molecule run.
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Run node validation
+      ansible.builtin.command: /usr/local/sbin/k8s-node-validate
+      changed_when: false
+      register: validation
+
+    - name: Show validation output
+      ansible.builtin.debug:
+        var: validation.stdout_lines

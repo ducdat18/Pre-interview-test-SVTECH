@@ -1,0 +1,37 @@
+# Vagrantfile — spin up a real Ubuntu 24.04 VM and provision it end-to-end.
+#
+# Requires: VirtualBox + Vagrant on the host (no Ansible needed on the host —
+# `ansible_local` installs and runs Ansible *inside* the guest).
+#
+# Usage:
+#   cd task01
+#   vagrant up                # creates VM + runs site.yml + runs validate.sh
+#   vagrant ssh -c 'sudo k8s-node-validate'   # re-check anytime
+#   vagrant provision         # re-run the playbook (proves idempotency)
+#   vagrant destroy -f        # tear down
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "bento/ubuntu-24.04"
+  config.vm.hostname = "k8s-node-test"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.name   = "k8s-node-test"
+    vb.memory = 4096
+    vb.cpus   = 2
+  end
+
+  # Provision with Ansible running inside the guest.
+  config.vm.provision "ansible", type: "ansible_local" do |a|
+    a.playbook          = "site.yml"
+    a.galaxy_role_file  = "requirements.yml"
+    a.galaxy_command    = "ansible-galaxy collection install -r %{role_file} --force"
+    a.compatibility_mode = "2.0"
+    a.limit             = "all"
+    # site.yml targets '{{ target | default("k8s_nodes") }}'; point it at the VM.
+    a.extra_vars        = { "target" => "all" }
+  end
+
+  # Independent post-check: fail `vagrant up` if the node isn't k8s-ready.
+  config.vm.provision "validate", type: "shell",
+    inline: "/usr/local/sbin/k8s-node-validate", privileged: true
+end

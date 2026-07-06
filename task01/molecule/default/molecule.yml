@@ -1,0 +1,40 @@
+---
+# Molecule test scenario — real VM via Vagrant/VirtualBox.
+#
+# Requires on the control machine:
+#   pip install molecule "molecule-plugins[vagrant]" ansible
+#   (plus VirtualBox + Vagrant)
+#
+# Run:
+#   cd task01
+#   molecule test          # create -> converge -> idempotence -> verify -> destroy
+#   molecule converge      # just provision (keeps VM up for inspection)
+#   molecule verify        # run validate.sh against the running VM
+dependency:
+  name: galaxy
+  options:
+    requirements-file: ../../requirements.yml
+
+driver:
+  name: vagrant
+  provider:
+    name: virtualbox
+
+platforms:
+  - name: k8s-node
+    box: bento/ubuntu-24.04
+    memory: 4096
+    cpus: 2
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: ../../roles
+  inventory:
+    group_vars:
+      all:
+        # site.yml resolves hosts from this; molecule's platform is in group 'all'.
+        target: all
+
+verifier:
+  name: ansible
