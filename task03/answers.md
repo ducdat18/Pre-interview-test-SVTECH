@@ -1,8 +1,5 @@
 # Task 03 — Incident Scenarios
 
-For each scenario I selected the action I would actually take **first** in a real
-production environment, with a short reasoning.
-
 ---
 
 ## Question 1 — Service returning 503
