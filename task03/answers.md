@@ -1,8 +1,7 @@
 # Task 03 — Incident Scenarios
 
 For each scenario I selected the action I would actually take **first** in a real
-production environment, with a short reasoning. (Per the brief, there are no
-strictly wrong answers — these reflect my first move and the thinking behind it.)
+production environment, with a short reasoning.
 
 ---
 
@@ -13,7 +12,7 @@ strictly wrong answers — these reflect my first move and the thinking behind i
 **Reasoning:** Logs are the fastest, non-destructive way to identify the actual
 failure mode of a 503 (exhausted/unhealthy backends, dependency or DB timeouts,
 resource exhaustion, or a library broken by a recent update), so I can choose the
-right mitigation — roll back, scale, or fail over — instead of rolling back
+right mitigation - roll back, scale, or fail over - instead of rolling back
 blindly, which can be useless or spread the failure. If the logs are clean, the
 fault is likely external, so I next verify dependencies/DB (D), then host
 resources (C).
@@ -29,7 +28,7 @@ services is far more consistent with the change breaking the monitoring pipeline
 (e.g., label/relabel changes causing NoData or false positives) than with 200
 independent real failures, which normally ramp up service-by-service rather than
 all at once. I do a ~30-second sanity check that the alerts are real (synthetic
-checks / actual user-facing errors); if they are false I avoid a panic rollback,
+checks / actual user-facing errors), if they are false I avoid a panic rollback,
 and if they are real I immediately roll back to the last known-good state.
 
 ---
@@ -40,7 +39,7 @@ and if they are real I immediately roll back to the last known-good state.
 
 **Reasoning:** The latency stayed under the static alert threshold so nothing
 fired, but 200ms → 2s is a severe regression against what users actually
-experience — which is why they complain while the system is technically "within
+experience - which is why they complain while the system is technically "within
 limits." My immediate concern is that alerting is built on static absolute
 thresholds rather than user-facing SLOs / burn-rate alerting (and likely lacks
 synthetic monitoring for low-traffic periods), so gradual, user-visible
